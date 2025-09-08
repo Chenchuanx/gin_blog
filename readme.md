@@ -15,3 +15,4 @@ gin_blog/
 ├── main.go         # 程序入口文件
 └── setting.yaml    # 项目配置文件
 ```
+本项目使用gin开发，为学习项目
