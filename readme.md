@@ -1,3 +1,4 @@
+```
 gin_blog/
 ├── api/            # 接口逻辑目录
 ├── config/         # 配置结构体目录
@@ -13,3 +14,4 @@ gin_blog/
 ├── utils/          # 常用工具
 ├── main.go         # 程序入口文件
 └── setting.yaml    # 项目配置文件
+```
