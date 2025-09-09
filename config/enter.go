@@ -8,7 +8,7 @@ type Config struct {
 
 type MySql struct {
 	Host     string `yaml:"host"`
-	Post     int    `yaml:"port"`
+	Port     int    `yaml:"port"`
 	DB       string `yaml:"db"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
@@ -17,14 +17,14 @@ type MySql struct {
 
 type Logger struct {
 	Level        string `yaml:"level"`
-	Prefix       int    `yaml:"prefix"`
+	Prefix       string `yaml:"prefix"`
 	Director     string `yaml:"director"`
-	ShowLine     string `yaml:"show_line"`
-	LogInConsole string `yaml:"log_in_console"`
+	ShowLine     bool   `yaml:"show_line"`
+	LogInConsole bool   `yaml:"log_in_console"`
 }
 
 type System struct {
 	Host string `yaml:"host"`
-	Post int    `yaml:"port"`
+	Port int    `yaml:"port"`
 	Env  string `yaml:"env"`
 }
