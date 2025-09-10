@@ -2,8 +2,6 @@ package global
 
 import (
 	"goBlog/config"
-
-	"gorm.io/gorm"
 )
 
 type LoggerInterface interface {
@@ -17,5 +15,5 @@ type LoggerInterface interface {
 var (
 	Config *config.Config
 	Logger LoggerInterface
-	Db     *gorm.DB
+	// Db     *gorm.DB
 )

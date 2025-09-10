@@ -3,16 +3,14 @@ package core
 import (
 	"fmt"
 	"goBlog/global"
+	"goBlog/models"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func InitGorm() {
-	global.Db = MysqlConnect()
-}
-
-func MysqlConnect() *gorm.DB {
+// 初始化ORM
+func InitGorm() *gorm.DB {
 	if global.Config.MySql.Host == "" {
 		fmt.Println("不存在")
 	}
@@ -21,6 +19,7 @@ func MysqlConnect() *gorm.DB {
 	if err != nil {
 		panic("failed to connect database" + err.Error())
 	}
+	db.AutoMigrate((&models.Users{}))
 
 	return db
 }

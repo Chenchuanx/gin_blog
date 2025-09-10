@@ -3,12 +3,19 @@ package main
 import (
 	"goBlog/core"
 	"goBlog/global"
+	"goBlog/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	core.InitConf()
 	core.InitLogger()
-	core.InitGorm()
+	db := core.InitGorm()
+
+	gin.SetMode("release")
+	r := gin.New()
+	r.Use(middleware.WithGormDB(db))
 
 	// fmt.Println(global.Config)
 	global.Logger.Debug("这是 debug 日志") // 如果 level >= info，则不输出
