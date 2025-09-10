@@ -1,0 +1,6 @@
+[ginBlog] 2025/09/10 11:44:34.699040 test
+[ginBlog] 2025/09/10 11:57:38.089558 test
+[ginBlog] 2025/09/10 12:40:55.673584 [INFO ] 这是 info 日志
+[ginBlog] 2025/09/10 12:40:55.673775 [WARN ] 这是 warning 日志
+[ginBlog] 2025/09/10 12:40:55.673787 [ERROR] 这是 error 日志
+[ginBlog] 2025/09/10 12:40:55.673879 [FATAL] 这是 fatal 日志
