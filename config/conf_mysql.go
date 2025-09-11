@@ -17,4 +17,5 @@ type MySql struct {
 func (m MySql) Dsn() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		m.User, m.Password, m.Host, strconv.Itoa(m.Port), m.DB)
+	// return "root:123456@tcp(127.0.0.1:3306)/gormTest?charset=utf8mb4&parseTime=True&loc=Local"
 }
