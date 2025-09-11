@@ -1,11 +1,11 @@
 ```
 gin_blog/
-├── api/            # 接口逻辑目录
 ├── config/         # 配置结构体目录
 ├── core/           # 初始化操作目录
 ├── docs/           # API 文档目录
 ├── flag/           # 命令行相关操作
-├── golobal/        # 全局变量
+├── global/         # 全局变量
+├── handler/        # http
 ├── middleware/     # 中间件目录
 ├── models/         # 数据库表结构目录
 ├── routers/        # Gin 路由配置目录
