@@ -12,7 +12,7 @@ import (
 func CreateUser(db *gorm.DB, user *models.Users) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return errors.New("密码加密失败：" + err.Error())
 	}
 	user.Password = string(hashedPassword)
 	result := db.Create(&user)
@@ -20,9 +20,27 @@ func CreateUser(db *gorm.DB, user *models.Users) error {
 }
 
 // UpdatePassword
-func UpdatePassword(db *gorm.DB, id int, user *models.Users) error {
-	result := db.Select("password").Where("id = ?", id).Updates(&user)
-	return result.Error
+func UpdatePassword(db *gorm.DB, user *models.Users) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(user.Password),
+		bcrypt.DefaultCost,
+	)
+	if err != nil {
+		return errors.New("密码加密失败：" + err.Error())
+	}
+
+	user.Password = string(hashedPassword)
+	result := db.Select("password").Where("Username = ?", user.Username).Updates(&user)
+	if result.Error != nil {
+		return errors.New("数据库更新失败：" + result.Error.Error())
+	}
+
+	// 检查是否有记录被更新（避免更新不存在的用户）
+	if result.RowsAffected == 0 {
+		return errors.New("未找到用户，更新失败")
+	}
+
+	return nil
 }
 
 // get User by id

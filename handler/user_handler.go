@@ -9,7 +9,7 @@ import (
 )
 
 func UserLogin(c *gin.Context) {
-	// 接收 HTTP 请求：解析请求体中的 username 和 password
+	//
 	var req struct {
 		Username string `json:"username" binding:"required"` // 参数校验（Handler 职责）
 		Password string `json:"password" binding:"required"`
@@ -36,7 +36,7 @@ func UserLogin(c *gin.Context) {
 }
 
 func UserSignup(c *gin.Context) {
-	// 定义注册请求参数结构体（含参数校验规则）
+	// 注册请求参数结构体
 	var req struct {
 		Username string `json:"username" binding:"required,min=3,max=20"` // 用户名
 		Password string `json:"password" binding:"required,min=6,max=32"` // 密码
@@ -72,6 +72,49 @@ func UserSignup(c *gin.Context) {
 		"msg": "注册成功",
 		"user": gin.H{
 			"id": newUser.ID,
+		},
+	})
+}
+
+func ChangePassword(c *gin.Context) {
+	// 修改密码参数结构体	需要通过验证？暂时不用
+	var req struct {
+		Username    string `json:"username" binding:"required"` // 参数校验（Handler 职责）
+		Password    string `json:"password" binding:"required"`
+		NewPassword string `json:"newpassword" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "参数错误：" + err.Error(), // 返回具体的参数错误信息（如格式不符）
+		})
+		return
+	}
+
+	user := models.Users{
+		Username: req.Username,
+		Password: req.Password,
+	}
+
+	// 先检查 用户存在/原密码
+	dbUser, err := service.CheckUserByPassword(GetDB(c), &user)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// 修改密码
+	dbUser.Password = req.NewPassword
+	service.UpdatePassword(GetDB(c), dbUser)
+
+	// 返回用户ID
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "修改成功",
+		"user": gin.H{
+			"id":       dbUser.ID,
+			"username": dbUser.Username,
 		},
 	})
 }
