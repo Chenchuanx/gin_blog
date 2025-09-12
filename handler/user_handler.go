@@ -10,27 +10,34 @@ import (
 	"gorm.io/gorm"
 )
 
-// 定义自定义错误码
-const (
-	CodeSuccess       = "0"
-	CodeParamError    = "10001"
-	CodeUnauthorized  = "10002"
-	CodeUserExists    = "10003"
-	CodeUserNotExists = "10004"
-	CodeDbError       = "10005"
-	CodePasswordError = "10006"
-)
+// 响应错误信息
+func ResponseError(c *gin.Context, code string, errMsg string) {
+	c.JSON(http.StatusOK, gin.H{
+		"code": code,
+		"msg":  errMsg,
+	})
+}
 
+// 响应成功信息
+func ResponseSuccess(c *gin.Context, msg string, user *models.Users) {
+	c.JSON(http.StatusOK, gin.H{
+		"code": CodeSuccess, // 保持使用常量
+		"msg":  msg,         // 使用传入的消息参数
+		"user": gin.H{
+			"id":       user.ID,
+			"username": user.Username,
+		},
+	})
+}
+
+// 登录  检查用户名和密码是否正确
 func UserLogin(c *gin.Context) {
 	var req struct {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"code": CodeParamError,
-			"msg":  "参数错误：" + err.Error(),
-		})
+		ResponseError(c, CodeParamError, "参数错误："+err.Error())
 		return
 	}
 
@@ -38,6 +45,7 @@ func UserLogin(c *gin.Context) {
 		Username: req.Username,
 		Password: req.Password,
 	}
+	// 检查用户名和密码是否正确
 	dbUser, err := service.CheckUserByPassword(GetDB(c), &user)
 	if err != nil {
 		code := CodeUnauthorized
@@ -46,102 +54,68 @@ func UserLogin(c *gin.Context) {
 		} else if err.Error() == "密码错误" {
 			code = CodePasswordError
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"code": code,
-			"msg":  err.Error(),
-		})
+		ResponseError(c, code, err.Error())
 		return
 	}
-	dbUser.Password = ""
-
-	// 成功响应中包含用户信息
-	c.JSON(http.StatusOK, gin.H{
-		"code": CodeSuccess,
-		"msg":  "登录成功",
-		"user": gin.H{
-			"id":       dbUser.ID,
-			"username": dbUser.Username,
-		},
-	})
+	dbUser.Password = "" // 密码不返回
+	// 登录成功时
+	ResponseSuccess(c, "登录成功", dbUser)
 }
 
+// 注册  检查用户名是否已存在、创建用户
 func UserSignup(c *gin.Context) {
 	var req struct {
 		Username string `json:"username" binding:"required,min=3,max=20"`
 		Password string `json:"password" binding:"required,min=6,max=32"`
 		Email    string `json:"email" binding:"required,email"`
 	}
-
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"code": CodeParamError,
-			"msg":  "参数错误：" + err.Error(),
-		})
+		ResponseError(c, CodeParamError, "参数错误："+err.Error())
 		return
 	}
 
+	// 检查用户名是否已存在
 	existingUser, err := service.GetUserInfoByName(GetDB(c), req.Username)
-	if err == nil && existingUser != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"code": CodeUserExists,
-			"msg":  "注册失败:用户名已存在",
-		})
+	if err == nil && existingUser != nil { // 没有错误且查找到用户 == 用户名已存在
+		ResponseError(c, CodeUserExists, "注册失败:用户名已存在")
+		return
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		ResponseError(c, CodeDbError, "注册失败:意外错误")
 		return
 	}
 
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusOK, gin.H{
-			"code": CodeDbError,
-			"msg":  "注册失败:意外错误",
-		})
-		return
-	}
-
+	// 创建用户
 	newUser := models.Users{
 		Username: req.Username,
 		Password: req.Password,
 		Email:    req.Email,
 	}
-
 	err = service.CreateUser(GetDB(c), &newUser)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"code": CodeDbError,
-			"msg":  "注册失败：" + err.Error(),
-		})
+		ResponseError(c, CodeDbError, "注册失败："+err.Error())
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": CodeSuccess,
-		"msg":  "注册成功",
-		"user": gin.H{
-			"id":       newUser.ID,
-			"username": newUser.Username,
-		},
-	})
+	// 注册成功时
+	ResponseSuccess(c, "注册成功", &newUser)
 }
 
+// 修改密码	检查旧密码是否正确、更新密码
 func ChangePassword(c *gin.Context) {
 	var req struct {
 		Username    string `json:"username" binding:"required"`
 		Password    string `json:"password" binding:"required"`
 		NewPassword string `json:"newpassword" binding:"required"`
 	}
-
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"code": CodeParamError,
-			"msg":  "参数错误：" + err.Error(),
-		})
+		ResponseError(c, CodeParamError, "参数错误："+err.Error())
 		return
 	}
 
+	// 检查旧密码是否正确
 	user := models.Users{
 		Username: req.Username,
 		Password: req.Password,
 	}
-
 	dbUser, err := service.CheckUserByPassword(GetDB(c), &user)
 	if err != nil {
 		code := CodeUnauthorized
@@ -150,29 +124,17 @@ func ChangePassword(c *gin.Context) {
 		} else if err.Error() == "密码错误" {
 			code = CodePasswordError
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"code": code,
-			"msg":  err.Error(),
-		})
+		ResponseError(c, code, err.Error())
 		return
 	}
 
+	// 更新密码
 	dbUser.Password = req.NewPassword
 	err = service.UpdatePassword(GetDB(c), dbUser)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"code": CodeDbError,
-			"msg":  "修改密码失败：" + err.Error(),
-		})
+		ResponseError(c, CodeDbError, "修改密码失败: "+err.Error())
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": CodeSuccess,
-		"msg":  "修改成功",
-		"user": gin.H{
-			"id":       dbUser.ID,
-			"username": dbUser.Username,
-		},
-	})
+	// 修改密码成功
+	ResponseSuccess(c, "修改成功", dbUser)
 }
