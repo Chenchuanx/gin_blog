@@ -16,6 +16,7 @@ func main() {
 
 	gin.SetMode("release")
 	r := gin.New()
+	r.Use(middleware.CORS()) // 添加CORS中间件，确保在所有路由之前
 	r.Use(middleware.GormDB(db))
 	routers.InitRouter(r)
 	fmt.Println("Server Start ...")

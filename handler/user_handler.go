@@ -1,92 +1,138 @@
 package handler
 
 import (
+	"errors"
 	"goBlog/models"
 	"goBlog/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+// 定义自定义错误码
+const (
+	CodeSuccess       = "0"
+	CodeParamError    = "10001"
+	CodeUnauthorized  = "10002"
+	CodeUserExists    = "10003"
+	CodeUserNotExists = "10004"
+	CodeDbError       = "10005"
+	CodePasswordError = "10006"
 )
 
 func UserLogin(c *gin.Context) {
-	//
 	var req struct {
-		Username string `json:"username" binding:"required"` // 参数校验（Handler 职责）
+		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误：" + err.Error()})
+		c.JSON(http.StatusOK, gin.H{
+			"code": CodeParamError,
+			"msg":  "参数错误：" + err.Error(),
+		})
 		return
 	}
 
-	// 调用 Service 层处理业务（不关心业务细节，只传参、收结果）
 	user := models.Users{
 		Username: req.Username,
 		Password: req.Password,
 	}
 	dbUser, err := service.CheckUserByPassword(GetDB(c), &user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		code := CodeUnauthorized
+		if err.Error() == "用户不存在" {
+			code = CodeUserNotExists
+		} else if err.Error() == "密码错误" {
+			code = CodePasswordError
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"code": code,
+			"msg":  err.Error(),
+		})
 		return
 	}
 	dbUser.Password = ""
 
-	// 3. 封装 HTTP 响应
-	c.JSON(http.StatusOK, gin.H{"User": dbUser, "msg": "登录成功"})
+	// 成功响应中包含用户信息
+	c.JSON(http.StatusOK, gin.H{
+		"code": CodeSuccess,
+		"msg":  "登录成功",
+		"user": gin.H{
+			"id":       dbUser.ID,
+			"username": dbUser.Username,
+		},
+	})
 }
 
 func UserSignup(c *gin.Context) {
-	// 注册请求参数结构体
 	var req struct {
-		Username string `json:"username" binding:"required,min=3,max=20"` // 用户名
-		Password string `json:"password" binding:"required,min=6,max=32"` // 密码
-		Email    string `json:"email" binding:"required,email"`           // 邮箱：需符合邮箱格式
+		Username string `json:"username" binding:"required,min=3,max=20"`
+		Password string `json:"password" binding:"required,min=6,max=32"`
+		Email    string `json:"email" binding:"required,email"`
 	}
 
-	// 解析并校验请求参数
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "参数错误：" + err.Error(), // 返回具体的参数错误信息（如格式不符）
+		c.JSON(http.StatusOK, gin.H{
+			"code": CodeParamError,
+			"msg":  "参数错误：" + err.Error(),
+		})
+		return
+	}
+
+	existingUser, err := service.GetUserInfoByName(GetDB(c), req.Username)
+	if err == nil && existingUser != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": CodeUserExists,
+			"msg":  "注册失败:用户名已存在",
+		})
+		return
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusOK, gin.H{
+			"code": CodeDbError,
+			"msg":  "注册失败:意外错误",
 		})
 		return
 	}
 
 	newUser := models.Users{
 		Username: req.Username,
-		Password: req.Password, // 在service 加密
+		Password: req.Password,
 		Email:    req.Email,
 	}
 
-	// 调用Service层创建用户
-	err := service.CreateUser(GetDB(c), &newUser)
+	err = service.CreateUser(GetDB(c), &newUser)
 	if err != nil {
-		// 根据业务错误类型返回对应提示（如用户名已存在）
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "注册失败：" + err.Error(),
+		c.JSON(http.StatusOK, gin.H{
+			"code": CodeDbError,
+			"msg":  "注册失败：" + err.Error(),
 		})
 		return
 	}
 
-	// 返回用户ID
 	c.JSON(http.StatusOK, gin.H{
-		"msg": "注册成功",
+		"code": CodeSuccess,
+		"msg":  "注册成功",
 		"user": gin.H{
-			"id": newUser.ID,
+			"id":       newUser.ID,
+			"username": newUser.Username,
 		},
 	})
 }
 
 func ChangePassword(c *gin.Context) {
-	// 修改密码参数结构体	需要通过验证？暂时不用
 	var req struct {
-		Username    string `json:"username" binding:"required"` // 参数校验（Handler 职责）
+		Username    string `json:"username" binding:"required"`
 		Password    string `json:"password" binding:"required"`
 		NewPassword string `json:"newpassword" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "参数错误：" + err.Error(), // 返回具体的参数错误信息（如格式不符）
+		c.JSON(http.StatusOK, gin.H{
+			"code": CodeParamError,
+			"msg":  "参数错误：" + err.Error(),
 		})
 		return
 	}
@@ -96,22 +142,34 @@ func ChangePassword(c *gin.Context) {
 		Password: req.Password,
 	}
 
-	// 先检查 用户存在/原密码
 	dbUser, err := service.CheckUserByPassword(GetDB(c), &user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
+		code := CodeUnauthorized
+		if err.Error() == "用户不存在" {
+			code = CodeUserNotExists
+		} else if err.Error() == "密码错误" {
+			code = CodePasswordError
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"code": code,
+			"msg":  err.Error(),
 		})
 		return
 	}
 
-	// 修改密码
 	dbUser.Password = req.NewPassword
-	service.UpdatePassword(GetDB(c), dbUser)
+	err = service.UpdatePassword(GetDB(c), dbUser)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": CodeDbError,
+			"msg":  "修改密码失败：" + err.Error(),
+		})
+		return
+	}
 
-	// 返回用户ID
 	c.JSON(http.StatusOK, gin.H{
-		"msg": "修改成功",
+		"code": CodeSuccess,
+		"msg":  "修改成功",
 		"user": gin.H{
 			"id":       dbUser.ID,
 			"username": dbUser.Username,

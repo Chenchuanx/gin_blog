@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户登录</title>
+  <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+  <div class="form-container">
+    <h2>用户登录</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">用户名</label>
+        <input
+          type="text"
+          id="username"
+          required
+          placeholder="请输入用户名"
+        />
+      </div>
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input
+          type="password"
+          id="password"
+          required
+          placeholder="请输入密码"
+        />
+      </div>
+      <button type="submit" class="btn" id="loginButton">登录</button>
+      <p class="error-message" id="errorMessage"></p>
+      <div class="link-container">
+        <p>还没有账号？<a href="register.html">立即注册</a></p>
+        <p><a href="change_password.html">修改密码？</a></p>
+      </div>
+    </form>
+  </div>
+
+  <script type="module">
+    import { login } from '../static/js/api.js';
+    import { showError, hideError, disableButton, enableButton, saveUser } from '../static/js/utils.js';
+  
+    document.addEventListener('DOMContentLoaded', function() {
+      const loginForm = document.getElementById('loginForm');
+      const usernameInput = document.getElementById('username');
+      const passwordInput = document.getElementById('password');
+      const errorMessage = document.getElementById('errorMessage');
+      const loginButton = document.getElementById('loginButton');
+  
+      loginForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        hideError(errorMessage);
+        disableButton(loginButton, '登录中...');
+  
+        try {
+          const data = await login(usernameInput.value, passwordInput.value);
+          
+          // 检查是否有用户信息
+          if (!data.user) {
+            throw { error: '登录失败：未获取到用户信息' };
+          }
+          
+          // 保存用户信息到本地存储
+          saveUser(data.user);
+          // 跳转到首页
+          window.location.href = 'home.html';
+        } catch (err) {
+          console.log('捕获到登录错误:', err);
+          console.log('登录错误对象结构:', JSON.stringify(err));
+          showError(err.error || '登录失败，请检查用户名和密码', errorMessage);
+        } finally {
+          enableButton(loginButton);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

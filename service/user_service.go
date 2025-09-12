@@ -16,7 +16,10 @@ func CreateUser(db *gorm.DB, user *models.Users) error {
 	}
 	user.Password = string(hashedPassword)
 	result := db.Create(&user)
-	return result.Error
+	if result.Error != nil {
+		return errors.New("创建用户失败:" + result.Error.Error())
+	}
+	return nil
 }
 
 // UpdatePassword
@@ -53,11 +56,11 @@ func GetUserById(db *gorm.DB, id int) (*models.Users, error) {
 // get User by username
 func GetUserInfoByName(db *gorm.DB, name string) (*models.Users, error) {
 	var user models.Users
-	result := db.Model(&user).Where("username LIKE ?", name).First(&user)
-	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	result := db.Model(&user).Where("username = ?", name).First(&user) // 使用精确匹配替代LIKE
+	if result.Error != nil {
 		return nil, result.Error
 	}
-	return &user, result.Error
+	return &user, nil
 }
 
 // check User password
