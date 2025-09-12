@@ -10,6 +10,7 @@ import (
 
 // create User
 func CreateUser(db *gorm.DB, user *models.Users) error {
+	// bcrypt 加密密码， 不可逆的单向哈希算法
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return errors.New("密码加密失败：" + err.Error())
@@ -33,7 +34,7 @@ func UpdatePassword(db *gorm.DB, user *models.Users) error {
 	}
 
 	user.Password = string(hashedPassword)
-	result := db.Select("password").Where("Username = ?", user.Username).Updates(&user)
+	result := db.Select("password").Where("id = ?", user.ID).Updates(&user)
 	if result.Error != nil {
 		return errors.New("数据库更新失败：" + result.Error.Error())
 	}
@@ -63,10 +64,12 @@ func GetUserInfoByName(db *gorm.DB, name string) (*models.Users, error) {
 	return &user, nil
 }
 
-// check User password
+// check User password;
+// return user.ID, user.Password
 func CheckUserByPassword(db *gorm.DB, user *models.Users) (*models.Users, error) {
 	var dbUser models.Users
 
+	// 查找用户, 找不到即
 	result := db.Select("id", "password").Where("username = ?", user.Username).First(&dbUser)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -75,6 +78,7 @@ func CheckUserByPassword(db *gorm.DB, user *models.Users) (*models.Users, error)
 		return nil, result.Error
 	}
 
+	// 验证密码, 密码正确返回 nil
 	err := bcrypt.CompareHashAndPassword(
 		[]byte(dbUser.Password),
 		[]byte(user.Password),
@@ -83,10 +87,5 @@ func CheckUserByPassword(db *gorm.DB, user *models.Users) (*models.Users, error)
 		return nil, errors.New("密码错误")
 	}
 
-	fullUser := &models.Users{}
-	if err := db.First(fullUser, dbUser.ID).Error; err != nil {
-		return nil, err
-	}
-
-	return fullUser, nil
+	return &dbUser, nil
 }

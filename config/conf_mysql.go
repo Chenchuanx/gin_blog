@@ -14,6 +14,7 @@ type MySql struct {
 	LogLevel string `yaml:"log_level"` // 日志等级
 }
 
+// Dsn 数据库连接字符串
 func (m MySql) Dsn() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		m.User, m.Password, m.Host, strconv.Itoa(m.Port), m.DB)

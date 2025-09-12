@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"goBlog/global"
 	"goBlog/models"
 
@@ -9,16 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// 初始化ORM
+// 初始化ORM, 连接数据库
 func InitGorm() *gorm.DB {
-	if global.Config.MySql.Host == "" {
-		fmt.Println("不存在")
-	}
-	dsn := global.Config.MySql.Dsn()
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	dsn := global.Config.MySql.Dsn()                      // 数据库连接字符串
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{}) // 连接MySQL数据库
 	if err != nil {
 		panic("failed to connect database" + err.Error())
 	}
+	// 迁移数据库
 	if err := db.AutoMigrate((&models.Users{})); err != nil {
 		panic("failed to migrate database" + err.Error())
 	}

@@ -16,3 +16,10 @@ gin_blog/
 └── setting.yaml    # 项目配置文件
 ```
 本项目使用gin开发，为学习项目。
+
+// 启动前端
+python -m http.server 8000
+// 启动后端
+go run main.go
+// 访问前端
+http://localhost:8000/

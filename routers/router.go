@@ -7,6 +7,7 @@ import (
 )
 
 func InitRouter(r *gin.Engine) {
+	// 处理前端请求接口
 	r.POST("/login", handler.UserLogin)
 	r.POST("/sign_up", handler.UserSignup)
 	r.POST("/change_password", handler.ChangePassword)
