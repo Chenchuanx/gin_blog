@@ -160,7 +160,7 @@ func (l *LoggerOutput) Info(format string, v ...interface{}) {
 	defer l.mu.Unlock()
 	if INFO >= l.level {
 		l.checkAndRotateLogFile()
-		l.logger.Println("[INFO ] " + fmt.Sprintf(format, v...))
+		l.logger.Println("[INFO] " + fmt.Sprintf(format, v...))
 	}
 }
 
@@ -169,7 +169,7 @@ func (l *LoggerOutput) Warning(format string, v ...interface{}) {
 	defer l.mu.Unlock()
 	if WARN >= l.level {
 		l.checkAndRotateLogFile()
-		l.logger.Println("[WARN ] " + fmt.Sprintf(format, v...))
+		l.logger.Println("[WARN] " + fmt.Sprintf(format, v...))
 	}
 }
 
