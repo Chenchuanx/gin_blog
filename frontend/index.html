@@ -52,10 +52,9 @@
         event.preventDefault();
         hideError(errorMessage);
         disableButton(loginButton, '登录中...');
-  
+
         try {
           const data = await login(usernameInput.value, passwordInput.value);
-          
           // 检查是否有用户信息
           if (!data.user) {
             throw { error: '登录失败：未获取到用户信息' };
@@ -68,7 +67,13 @@
         } catch (err) {
           console.log('捕获到登录错误:', err);
           console.log('登录错误对象结构:', JSON.stringify(err));
-          showError(err.error || '登录失败，请检查用户名和密码', errorMessage);
+          
+          // 新增：判断是否为网络错误（后端未启动）
+          if (!err.error && (err.message && (err.message.includes('Failed to fetch') || err.message.includes('网络错误')))) {
+            showError('登录失败，服务无法连接', errorMessage);
+          } else {
+            showError(err.error || '登录失败，请检查用户名和密码', errorMessage);
+          }
         } finally {
           enableButton(loginButton);
         }

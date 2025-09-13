@@ -60,6 +60,9 @@ func UserLogin(c *gin.Context) {
 	dbUser.Password = "" // 密码不返回
 	// 登录成功时
 	ResponseSuccess(c, "登录成功", dbUser)
+	// 登录日志
+	log := GetLogger(c)
+	log.Info("UserLogin success, userid: %d", dbUser.ID)
 }
 
 // 注册  检查用户名是否已存在、创建用户
@@ -97,6 +100,9 @@ func UserSignup(c *gin.Context) {
 	}
 	// 注册成功时
 	ResponseSuccess(c, "注册成功", &newUser)
+	// 注册日志
+	log := GetLogger(c)
+	log.Info("UserSignup success, userid: %d", newUser.ID)
 }
 
 // 修改密码	检查旧密码是否正确、更新密码
@@ -137,4 +143,7 @@ func ChangePassword(c *gin.Context) {
 	}
 	// 修改密码成功
 	ResponseSuccess(c, "修改成功", dbUser)
+	// 修改密码日志
+	log := GetLogger(c)
+	log.Info("ChangePassword success, userid: %d", dbUser.ID)
 }

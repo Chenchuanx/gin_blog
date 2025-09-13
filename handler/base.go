@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"goBlog/core"
 	g "goBlog/global"
 
 	"github.com/gin-gonic/gin"
@@ -28,4 +29,8 @@ const (
 // 获取 中间件 *gorm.DB
 func GetDB(c *gin.Context) *gorm.DB {
 	return c.MustGet(g.CTX_DB).(*gorm.DB)
+}
+
+func GetLogger(c *gin.Context) *core.LoggerOutput {
+	return c.MustGet(g.CTX_LOG).(*core.LoggerOutput)
 }

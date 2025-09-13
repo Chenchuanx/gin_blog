@@ -49,12 +49,10 @@ export async function login(username, password) {
       username,
       password
     });
-    
     // 验证响应数据完整性
     // if (!data || !data.user) {
     //   throw { error: '登录响应数据不完整' };
     // }
-    
     return data;
   } catch (error) {
     throw error;

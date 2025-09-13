@@ -19,7 +19,9 @@ gin_blog/
 
 // 启动前端
 python -m http.server 8000
+
 // 启动后端
 go run main.go
+
 // 访问前端
 http://localhost:8000/
