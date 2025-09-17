@@ -3,16 +3,529 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>个人主页</title>
-  <link rel="stylesheet" href="../static/css/styles.css">
+  <title>个人主页 - Blog Management</title>
+  <link rel="stylesheet" href="./static/css/styles.css">
 </head>
 <body>
-  <!-- 其余内容保持不变 -->
-  <p>欢迎来到个人主页</p>
+  <div class="main-container">
+    <!-- 顶部导航栏 -->
+    <header class="main-header">
+      <div class="header-content">
+        <h1>Blog Management</h1>
+        <nav class="main-nav">
+          <ul class="nav-options">
+            <li class="nav-option active" data-section="articles">
+              <i class="icon">📝</i> 文章
+            </li>
+            <li class="nav-option" data-section="profile">
+              <i class="icon">👤</i> 个人资料
+            </li>
+            <li class="nav-option" data-section="settings">
+              <i class="icon">⚙️</i> 设置
+            </li>
+          </ul>
+        </nav>
+        <button id="logout-btn" class="logout-button">退出登录</button>
+      </div>
+    </header>
+
+    <!-- 内容区域 -->
+    <main class="content-area">
+      <!-- 文章管理区域 -->
+      <section id="articles-section" class="section-content active">
+        <div class="section-header">
+          <h2>文章管理</h2>
+          <div class="header-actions">
+            <button id="show-all-btn" class="btn-large btn-secondary">显示所有文章</button>
+            <button id="create-article-btn" class="btn-large btn-primary">创建文章</button>
+          </div>
+        </div>
+
+        <!-- 文章列表 -->
+        <div class="article-list">
+          <div id="article-loading" class="loading">加载中...</div>
+          <div id="article-list-container"></div>
+          <div id="no-articles" class="empty-state" style="display: none;">
+            <p>暂无文章，点击"创建文章"按钮添加</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 个人资料区域 -->
+      <section id="profile-section" class="section-content" style="display: none;">
+        <h2>个人资料</h2>
+        <p>个人资料功能开发中...</p>
+      </section>
+
+      <!-- 设置区域 -->
+      <section id="settings-section" class="section-content" style="display: none;">
+        <h2>设置</h2>
+        <p>设置功能开发中...</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- 创建/编辑文章模态框 -->
+  <div id="article-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">创建文章</h3>
+        <button id="close-modal" class="close-btn">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="article-id">
+        <div class="form-group">
+          <label for="article-title">标题</label>
+          <input type="text" id="article-title" placeholder="请输入文章标题">
+        </div>
+        <div class="form-group">
+          <label for="article-content">内容</label>
+          <textarea id="article-content" rows="8" placeholder="请输入文章内容"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-modal" class="btn-large btn-secondary">取消</button>
+        <button id="save-article" class="btn-large btn-primary">保存</button>
+      </div>
+      <div id="modal-error" class="error-message" style="display: none;"></div>
+    </div>
+  </div>
+
+  <!-- 确认删除模态框 -->
+  <div id="confirm-modal" class="modal" style="display: none;">
+    <div class="modal-content confirm-modal">
+      <h3>确认删除</h3>
+      <p>确定要删除这篇文章吗？此操作不可撤销。</p>
+      <div class="modal-footer">
+        <button id="cancel-delete" class="btn-large btn-secondary">取消</button>
+        <button id="confirm-delete" class="btn-large btn-danger">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 文章详情模态框 -->
+  <div id="article-detail-modal" class="modal" style="display: none;">
+    <div class="modal-content article-detail">
+      <div class="modal-header">
+        <h2 id="detail-title"></h2>
+        <button id="close-detail" class="close-btn">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="article-meta">
+          <span id="detail-author">作者: </span>
+          <span id="detail-time">发布时间: </span>
+          <span id="detail-likes">👍 </span>
+        </div>
+        <div id="detail-content" class="article-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="close-detail-btn" class="btn-large btn-primary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 完整的JavaScript功能实现 -->
   <script type="module">
-    import { getUser, removeUser } from '../static/js/utils.js';
-    
-    // 其余JavaScript代码保持不变
-  </script>
+    import { getUser, removeUser } from './static/js/utils.js';
+    import { getMyArticles, getAllArticles, createArticle, updateArticle, deleteArticle, getArticleDetail, changeArticleLike } from './static/js/api.js';
+
+    // 当前编辑的文章ID
+    let currentArticleId = null;
+    // 当前显示模式 (my: 自己的文章, all: 所有文章)
+    let currentMode = 'my';
+
+    // DOM 元素
+    const logoutBtn = document.getElementById('logout-btn');
+    const navOptions = document.querySelectorAll('.nav-option');
+    const sections = document.querySelectorAll('.section-content');
+    const articleListContainer = document.getElementById('article-list-container');
+    const articleLoading = document.getElementById('article-loading');
+    const noArticles = document.getElementById('no-articles');
+    const showAllBtn = document.getElementById('show-all-btn');
+    const createArticleBtn = document.getElementById('create-article-btn');
+    const articleModal = document.getElementById('article-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const closeModal = document.getElementById('close-modal');
+    const cancelModal = document.getElementById('cancel-modal');
+    const saveArticleBtn = document.getElementById('save-article');
+    const articleIdInput = document.getElementById('article-id');
+    const articleTitleInput = document.getElementById('article-title');
+    const articleContentInput = document.getElementById('article-content');
+    const modalError = document.getElementById('modal-error');
+    const confirmModal = document.getElementById('confirm-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete');
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
+
+    // 初始化页面
+    async function init() {
+      // 检查用户是否登录
+      const user = getUser();
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      // 明确设置按钮初始文本
+      showAllBtn.textContent = '显示所有文章';
+      
+      // 加载文章列表
+      await loadArticles();
+      
+      // 绑定事件
+      bindEvents();
+    }
+
+    // 绑定事件
+    function bindEvents() {
+      // 退出登录
+      logoutBtn.addEventListener('click', () => {
+        removeUser();
+        window.location.href = 'index.html';
+      });
+
+      // 导航选项点击事件
+      navOptions.forEach(item => {
+        item.addEventListener('click', () => {
+          const sectionId = item.getAttribute('data-section');
+          switchSection(sectionId);
+        });
+      });
+
+      // 显示所有文章按钮
+      showAllBtn.addEventListener('click', async () => {
+        if (currentMode === 'all') {
+          currentMode = 'my';
+          showAllBtn.textContent = '显示所有文章';
+        } else {
+          currentMode = 'all';
+          showAllBtn.textContent = '显示我的文章';
+        }
+        await loadArticles();
+      });
+
+      // 创建文章按钮
+      createArticleBtn.addEventListener('click', () => {
+        openCreateModal();
+      });
+
+      // 模态框事件
+      closeModal.addEventListener('click', closeArticleModal);
+      cancelModal.addEventListener('click', closeArticleModal);
+      saveArticleBtn.addEventListener('click', saveArticle);
+
+      // 确认删除模态框事件
+      cancelDeleteBtn.addEventListener('click', () => {
+        confirmModal.style.display = 'none';
+      });
+      confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
+    }
+
+    // 切换区域
+    function switchSection(sectionId) {
+      // 更新导航选项的激活状态
+      navOptions.forEach(option => {
+        if (option.getAttribute('data-section') === sectionId) {
+          option.classList.add('active');
+        } else {
+          option.classList.remove('active');
+        }
+      });
+
+      // 显示对应的内容区域
+      sections.forEach(section => {
+        if (section.id === `${sectionId}-section`) {
+          section.style.display = 'block';
+          section.classList.add('active');
+        } else {
+          section.style.display = 'none';
+          section.classList.remove('active');
+        }
+      });
+    }
+
+    // 加载文章列表
+    async function loadArticles() {
+      articleLoading.style.display = 'block';
+      articleListContainer.innerHTML = '';
+      noArticles.style.display = 'none';
+
+      try {
+        let responseData;
+        if (currentMode === 'my') {
+          responseData = await getMyArticles();
+        } else {
+          responseData = await getAllArticles();
+        }
+        
+        // 从响应数据中提取文章数组，确保处理多种可能的返回格式
+        const articles = responseData.data && Array.isArray(responseData.data) ? 
+                         responseData.data : 
+                         (responseData.articles && Array.isArray(responseData.articles) ? 
+                         responseData.articles : []);
+
+        if (articles.length === 0) {
+          noArticles.style.display = 'block';
+        } else {
+          renderArticleList(articles);
+        }
+      } catch (error) {
+        console.error('加载文章失败:', error);
+        showError('加载文章失败，请重试');
+      } finally {
+        articleLoading.style.display = 'none';
+      }
+    }
+
+    // 渲染文章列表
+    function renderArticleList(articles) {
+      // 获取当前登录用户
+      const currentUser = getUser();
+      
+      articles.forEach(article => {
+        const articleItem = document.createElement('div');
+        articleItem.className = 'article-item';
+        
+        // 检查是否为文章作者
+        const isAuthor = currentUser && currentUser.id === article.AuthorID;
+        
+        // 根据是否为作者决定是否禁用编辑删除按钮
+        const buttonDisabled = isAuthor ? '' : 'disabled';
+        const buttonClass = isAuthor ? '' : 'disabled-btn';
+        
+        articleItem.innerHTML = `
+        <div class="article-header">
+        <h3 class="article-title" data-id="${article.id}">${article.title}</h3>
+        <div class="article-meta">
+        <span class="author">作者: ${article.Users?.username || '未知'}</span>
+        <div class="like-section">
+        <button class="like-btn" data-id="${article.id}" data-liked="false">👍</button>
+        <span class="like-count">${article.like_count || 0}</span>
+        </div>
+        </div>
+        </div>
+        <div class="article-actions">
+        <button class="edit-btn ${buttonClass}" data-id="${article.id}" ${buttonDisabled}>编辑</button>
+        <button class="delete-btn ${buttonClass}" data-id="${article.id}" ${buttonDisabled}>删除</button>
+        </div>
+        `;
+        articleListContainer.appendChild(articleItem);
+      });
+      // 添加事件监听
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', handleEditArticle);
+      });
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', handleDeleteArticle);
+      });
+      document.querySelectorAll('.article-title').forEach(title => {
+      title.addEventListener('click', function() {
+      const articleId = parseInt(this.getAttribute('data-id'));
+      loadArticleDetail(articleId);
+      });
+      });
+      
+      // 添加点赞按钮事件监听
+      document.querySelectorAll('.like-btn').forEach(btn => {
+      btn.addEventListener('click', async function(e) {
+      e.stopPropagation(); // 阻止事件冒泡到文章标题
+      const articleId = parseInt(this.getAttribute('data-id'));
+      const isLiked = this.getAttribute('data-liked') === 'true';
+      const likeCountElement = this.nextElementSibling;
+      
+      try {
+      // 1表示点赞，-1表示取消点赞
+      const count = isLiked ? -1 : 1;
+      await changeArticleLike(articleId, count);
+      
+      // 更新UI
+      this.setAttribute('data-liked', !isLiked);
+      const currentLikes = parseInt(likeCountElement.textContent);
+      likeCountElement.textContent = currentLikes + count;
+      
+      // 为点赞按钮添加动画效果
+      this.classList.add('like-animation');
+      setTimeout(() => {
+      this.classList.remove('like-animation');
+      }, 500);
+      } catch (error) {
+      console.error('点赞操作失败:', error);
+      showError('点赞操作失败，请重试');
+      }
+      });
+      });
+      }
+
+      // 打开创建模态框
+      function openCreateModal() {
+        currentArticleId = null;
+        modalTitle.textContent = '创建文章';
+        articleIdInput.value = '';
+        articleTitleInput.value = '';
+        articleContentInput.value = '';
+        modalError.style.display = 'none';
+        articleModal.style.display = 'block';
+      }
+
+      // 处理编辑文章
+      async function handleEditArticle() {
+        const id = this.getAttribute('data-id');
+        await openEditModal(id);
+      }
+
+      // 处理删除文章
+      function handleDeleteArticle() {
+        currentArticleId = this.getAttribute('data-id');
+        confirmModal.style.display = 'block';
+      }
+
+      // 打开编辑模态框
+      async function openEditModal(id) {
+        try {
+          // 获取文章详情
+          const responseData = await getArticleDetail(id);
+          const article = responseData.data || responseData;
+          
+          if (article) {
+            currentArticleId = id;
+            modalTitle.textContent = '编辑文章';
+            articleIdInput.value = id;
+            articleTitleInput.value = article.title || '';
+            articleContentInput.value = article.content || '';
+            modalError.style.display = 'none';
+            articleModal.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('加载文章详情失败:', error);
+          showError('加载文章详情失败，请重试');
+        }
+      }
+
+      // 关闭文章模态框
+      function closeArticleModal() {
+        articleModal.style.display = 'none';
+      }
+
+      // 保存文章
+      async function saveArticle() {
+        const title = articleTitleInput.value.trim();
+        const content = articleContentInput.value.trim();
+
+        if (!title || !content) {
+          showModalError('标题和内容不能为空');
+          return;
+        }
+
+        try {
+          if (currentArticleId) {
+            await updateArticle({ id: currentArticleId, title, content });
+          } else {
+            await createArticle({ title, content });
+          }
+          
+          closeArticleModal();
+          await loadArticles();
+        } catch (error) {
+          console.error('保存文章失败:', error);
+          showModalError(error.message || '保存文章失败，请重试');
+        }
+      }
+
+      // 处理确认删除
+      async function handleConfirmDelete() {
+        if (!currentArticleId) return;
+
+        try {
+          await deleteArticle(currentArticleId);
+          confirmModal.style.display = 'none';
+          await loadArticles();
+        } catch (error) {
+          console.error('删除文章失败:', error);
+          showError('删除文章失败，请重试');
+          confirmModal.style.display = 'none';
+        }
+      }
+
+      // 显示错误消息
+      function showError(message) {
+        const errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        errorElement.textContent = message;
+        document.body.appendChild(errorElement);
+
+        // 3秒后自动移除错误消息
+        setTimeout(() => {
+          errorElement.remove();
+        }, 3000);
+      }
+
+      // 显示模态框错误消息
+      function showModalError(message) {
+        modalError.textContent = message;
+        modalError.style.display = 'block';
+      }
+
+      // 加载并显示文章详情
+      async function loadArticleDetail(id) {
+        const detailModal = document.getElementById('article-detail-modal');
+        const detailTitle = document.getElementById('detail-title');
+        const detailAuthor = document.getElementById('detail-author');
+        const detailTime = document.getElementById('detail-time');
+        const detailLikes = document.getElementById('detail-likes');
+        const detailContent = document.getElementById('detail-content');
+        
+        try {
+          // 显示加载状态
+          detailTitle.textContent = '加载中...';
+          detailContent.textContent = '';
+          detailModal.style.display = 'block';
+          
+          // 获取文章详情
+          const responseData = await getArticleDetail(id);
+          // 修改这行，从responseData.article获取数据
+          const article = responseData.article || 
+                         (responseData.articles && responseData.articles[0]) || 
+                         (responseData.data || responseData);
+          
+          // 填充文章详情
+          detailTitle.textContent = article.title || '无标题';
+          detailAuthor.textContent = `作者: ${article.Users?.username || '未知'}`;
+          detailTime.textContent = `发布时间: ${article.created_at ? new Date(article.created_at).toLocaleString() : '未知'}`;
+          detailLikes.textContent = `👍 ${article.like_count || 0}`;
+          detailContent.textContent = article.content || '暂无内容';
+        } catch (error) {
+          console.error('加载文章详情失败:', error);
+          showError('加载文章详情失败，请重试');
+          detailModal.style.display = 'none';
+        }
+      }
+
+      // 关闭文章详情模态框
+      document.getElementById('close-detail').addEventListener('click', function() {
+        document.getElementById('article-detail-modal').style.display = 'none';
+      });
+      document.getElementById('close-detail-btn').addEventListener('click', function() {
+        document.getElementById('article-detail-modal').style.display = 'none';
+      });
+
+      // 点击模态框外部关闭
+      window.addEventListener('click', function(event) {
+        const detailModal = document.getElementById('article-detail-modal');
+        const articleModal = document.getElementById('article-modal');
+        const confirmModal = document.getElementById('confirm-modal');
+        
+        if (event.target === detailModal) {
+          detailModal.style.display = 'none';
+        }
+        if (event.target === articleModal) {
+          articleModal.style.display = 'none';
+        }
+        if (event.target === confirmModal) {
+          confirmModal.style.display = 'none';
+        }
+      });
+
+      // 初始化页面
+      init();
+    </script>
 </body>
 </html>

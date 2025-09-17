@@ -10,16 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// 响应错误信息
-func ResponseError(c *gin.Context, code string, errMsg string) {
-	c.JSON(http.StatusOK, gin.H{
-		"code": code,
-		"msg":  errMsg,
-	})
-}
-
 // 响应成功信息
-func ResponseSuccess(c *gin.Context, msg string, user *models.Users) {
+func ResponseUserSuccess(c *gin.Context, msg string, user *models.Users) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeSuccess, // 保持使用常量
 		"msg":  msg,         // 使用传入的消息参数
@@ -59,7 +51,7 @@ func UserLogin(c *gin.Context) {
 	}
 	dbUser.Password = "" // 密码不返回
 	// 登录成功时
-	ResponseSuccess(c, "登录成功", dbUser)
+	ResponseUserSuccess(c, "登录成功", dbUser)
 	// 登录日志
 	log := GetLogger(c)
 	log.Info("UserLogin success, userid: %d", dbUser.ID)
@@ -99,7 +91,7 @@ func UserSignup(c *gin.Context) {
 		return
 	}
 	// 注册成功时
-	ResponseSuccess(c, "注册成功", &newUser)
+	ResponseUserSuccess(c, "注册成功", &newUser)
 	// 注册日志
 	log := GetLogger(c)
 	log.Info("UserSignup success, userid: %d", newUser.ID)
@@ -142,7 +134,7 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 	// 修改密码成功
-	ResponseSuccess(c, "修改成功", dbUser)
+	ResponseUserSuccess(c, "修改成功", dbUser)
 	// 修改密码日志
 	log := GetLogger(c)
 	log.Info("ChangePassword success, userid: %d", dbUser.ID)

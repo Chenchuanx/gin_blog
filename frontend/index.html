@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>用户登录</title>
-  <link rel="stylesheet" href="../static/css/styles.css">
+  <link rel="stylesheet" href="./static/css/styles.css">
 </head>
 <body>
   <div class="form-container">
@@ -38,8 +38,8 @@
   </div>
 
   <script type="module">
-    import { login } from '../static/js/api.js';
-    import { showError, hideError, disableButton, enableButton, saveUser } from '../static/js/utils.js';
+    import { login } from './static/js/api.js';
+    import { showError, hideError, disableButton, enableButton, saveUser } from './static/js/utils.js';
   
     document.addEventListener('DOMContentLoaded', function() {
       const loginForm = document.getElementById('loginForm');
