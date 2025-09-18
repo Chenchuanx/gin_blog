@@ -108,7 +108,7 @@ export async function getMyArticles() {
     }
     
     const response = await fetch(`${API_BASE_URL}/articles/getmy`, {
-      method: 'POST',  // 改为POST请求
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
@@ -164,8 +164,8 @@ export async function getAllArticles() {
  */
 export async function createArticle(article) {
   try {
-    // 修改：使用新的路由
     const data = await sendRequest('/articles/create', article);
+    
     return data;
   } catch (error) {
     throw error;
@@ -179,7 +179,6 @@ export async function createArticle(article) {
  */
 export async function updateArticle(article) {
   try {
-    // 修改：使用带ID的新路由
     const response = await fetch(`${API_BASE_URL}/articles/update/${article.id}`, {
       method: 'POST',
       headers: {

@@ -381,68 +381,55 @@
       // 打开编辑模态框
       async function openEditModal(id) {
         try {
+          // 确保先显示模态框，避免DOM渲染问题
+          modalTitle.textContent = '编辑文章';
+          articleIdInput.value = id;
+          modalError.style.display = 'none';
+          articleModal.style.display = 'block';
+          
+          // 显示加载状态
+          articleTitleInput.value = '加载中...';
+          articleContentInput.value = '加载中...';
+        
+          // console.log('正在获取文章详情,ID:', id);
           // 获取文章详情
           const responseData = await getArticleDetail(id);
-          const article = responseData.data || responseData;
+          // console.log('获取文章详情成功，响应数据完整结构:', JSON.stringify(responseData));
           
-          if (article) {
+          let articleData = responseData.article;
+          // console.log('实际处理的文章数据:', JSON.stringify(articleData));
+          
+          if (articleData) {
             currentArticleId = id;
-            modalTitle.textContent = '编辑文章';
-            articleIdInput.value = id;
-            articleTitleInput.value = article.title || '';
-            articleContentInput.value = article.content || '';
-            modalError.style.display = 'none';
-            articleModal.style.display = 'block';
+            
+            // 彻底检查各种可能的数据字段 articleData.title  articleData.content
+            const title = articleData.Title || articleData.title || articleData.name || '';
+            const content = articleData.Content || articleData.content || articleData.body || '';
+            
+            // 添加小延迟确保DOM完全渲染后再设置值
+            setTimeout(() => {
+              articleTitleInput.value = title;
+              articleContentInput.value = content;
+              // console.log('最终设置的标题:', articleTitleInput.value);
+              // console.log('最终设置的内容:', articleContentInput.value);
+            }, 100);
+          } else {
+            console.error('获取到的文章数据为空或格式不正确');
+            articleTitleInput.value = '';
+            articleContentInput.value = '';
+            showError('无法加载文章数据');
           }
         } catch (error) {
           console.error('加载文章详情失败:', error);
-          showError('加载文章详情失败，请重试');
+          articleTitleInput.value = '';
+          articleContentInput.value = '';
+          showError('加载文章详情失败，请重试: ' + (error.message || error));
         }
       }
 
       // 关闭文章模态框
       function closeArticleModal() {
         articleModal.style.display = 'none';
-      }
-
-      // 保存文章
-      async function saveArticle() {
-        const title = articleTitleInput.value.trim();
-        const content = articleContentInput.value.trim();
-
-        if (!title || !content) {
-          showModalError('标题和内容不能为空');
-          return;
-        }
-
-        try {
-          if (currentArticleId) {
-            await updateArticle({ id: currentArticleId, title, content });
-          } else {
-            await createArticle({ title, content });
-          }
-          
-          closeArticleModal();
-          await loadArticles();
-        } catch (error) {
-          console.error('保存文章失败:', error);
-          showModalError(error.message || '保存文章失败，请重试');
-        }
-      }
-
-      // 处理确认删除
-      async function handleConfirmDelete() {
-        if (!currentArticleId) return;
-
-        try {
-          await deleteArticle(currentArticleId);
-          confirmModal.style.display = 'none';
-          await loadArticles();
-        } catch (error) {
-          console.error('删除文章失败:', error);
-          showError('删除文章失败，请重试');
-          confirmModal.style.display = 'none';
-        }
       }
 
       // 显示错误消息
@@ -458,10 +445,75 @@
         }, 3000);
       }
 
+      // 显示成功消息
+      function showSuccess(message) {
+        const successElement = document.createElement('div');
+        successElement.className = 'global-success-message';
+        successElement.textContent = message;
+        document.body.appendChild(successElement);
+      
+        // 3秒后自动移除成功消息
+        setTimeout(() => {
+          successElement.style.opacity = '0';
+          successElement.style.transform = 'translate(-50%, -100%)';
+          successElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          
+          // 等待动画完成后移除元素
+          setTimeout(() => {
+            successElement.remove();
+          }, 300);
+        }, 3000);
+      }
+
+      // 处理确认删除
+      async function handleConfirmDelete() {
+        if (!currentArticleId) return;
+
+        try {
+          await deleteArticle(currentArticleId);
+          confirmModal.style.display = 'none';
+          showSuccess('文章删除成功');
+          await loadArticles();
+        } catch (error) {
+          console.error('删除文章失败:', error);
+          showError('删除文章失败，请重试');
+          confirmModal.style.display = 'none';
+        }
+      }
+
       // 显示模态框错误消息
       function showModalError(message) {
         modalError.textContent = message;
         modalError.style.display = 'block';
+      }
+      
+       // 保存文章
+      async function saveArticle() {
+        const title = articleTitleInput.value.trim();
+        const content = articleContentInput.value.trim();
+
+        if (!title || !content) {
+          showModalError('标题和内容不能为空');
+          return;
+        }
+
+        try {
+          if (currentArticleId) {
+            await updateArticle({ id: currentArticleId, title, content });
+            showSuccess('文章更新成功');
+          } else {
+            // 获取当前登录用户ID并添加到请求中
+            const user = getUser();
+            await createArticle({ title, content, author_id: user.id });
+            showSuccess('文章创建成功');
+          }
+          console.log('文章保存成功');
+          closeArticleModal();
+          await loadArticles();
+        } catch (error) {
+          console.error('保存文章失败:', error);
+          showModalError(error.message || '保存文章失败，请重试');
+        }
       }
 
       // 加载并显示文章详情

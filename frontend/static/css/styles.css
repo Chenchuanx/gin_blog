@@ -313,7 +313,6 @@ body {
   font-weight: 500;
 }
 
-/* 模态框样式优化 */
 .modal {
   display: none;
   position: fixed;
@@ -323,10 +322,13 @@ body {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1000;
-  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal[style*="display: block"] {
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.3s ease;
 }
 
 .modal:not([style*="display: block"]) {
@@ -342,6 +344,7 @@ body {
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   animation: slideIn 0.3s ease;
+  margin: 0;
 }
 
 @keyframes fadeIn {
@@ -675,15 +678,31 @@ h1, h2 {
   display: none; /* 添加这一行，使错误提示框默认隐藏 */
 }
 
-/* 成功消息样式 */
-.success-message {
-  color: #4CAF50;
-  background-color: #f1f8e9;
-  border: 1px solid #c8e6c9;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 4px;
-  display: none;
+/* 全局成功消息样式 - 修改为从顶部出现 */
+.global-success-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  z-index: 10000;
+  animation: slideDown 0.3s ease-out;
+}
+
+/* 修改动画效果，使其从上方滑入 */
+@keyframes slideDown {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }
 
 /* 链接样式 */

@@ -122,27 +122,23 @@ func UpdateArticle(c *gin.Context) {
 
 // 删除文章
 func DeleteArticle(c *gin.Context) {
-	var req struct {
-		ID int `json:"author_id" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		ResponseError(c, CodeParamError, "参数错误："+err.Error())
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		ResponseError(c, CodeParamError, "无效的文章ID")
 		return
 	}
 
 	// 调用服务层删除文章
-	if err := service.DeleteArticle(GetDB(c), req.ID); err != nil {
+	if err := service.DeleteArticle(GetDB(c), id); err != nil {
 		ResponseError(c, CodeDbError, "删除文章失败："+err.Error())
 		return
 	}
-
-	// 修复结构体初始化语法
-	ResponseArticleSuccess(c, "删除文章成功", &models.Article{Model: models.Model{ID: req.ID}})
+	ResponseArticleSuccess(c, "删除文章成功", &models.Article{Model: models.Model{ID: id}})
 
 	// 记录日志
 	log := GetLogger(c)
-	log.Info("DeleteArticle success, article id: %d", req.ID)
+	log.Info("DeleteArticle success, article id: %d", id)
 }
 
 // 获取文章详情
